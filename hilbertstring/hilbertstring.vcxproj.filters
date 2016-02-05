@@ -27,12 +27,6 @@
     <ClInclude Include="hilbert2.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="CyoDecode.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="CyoEncode.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="stdafx.cpp">
@@ -42,12 +36,6 @@
       <Filter>Source Files</Filter>
     </ClCompile>
     <ClCompile Include="hilbert2.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
-    <ClCompile Include="CyoDecode.c">
-      <Filter>Source Files</Filter>
-    </ClCompile>
-    <ClCompile Include="CyoEncode.c">
       <Filter>Source Files</Filter>
     </ClCompile>
   </ItemGroup>
