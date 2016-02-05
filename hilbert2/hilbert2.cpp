@@ -27,32 +27,32 @@ etc...
 typedef unsigned long long U_int;
 
 //for 2d sample
-//#define DIM 2 
-//#define ORDER  3
-//const U_int g_mask[] = { 2, 1 };
+#define DIM 2 
+#define ORDER  3
+const U_int g_mask[] = { 2, 1 }; //the number is equal to the DIM
 
 //for butz's sample
-#define DIM 5 
-#define ORDER 4
-const U_int g_mask[] = { 16, 8, 4, 2, 1 };
+//#define DIM 5 
+//#define ORDER 4
+//const U_int g_mask[] = { 16, 8, 4, 2, 1 };
 
 
 typedef struct {
-	U_int hcode[DIM];
-}HCord;//The numeber coordiantes of each point is DIM, each coordinate is ORDER bits
+	U_int cord[DIM];
+}HCord;//The numeber  of each point's coordiantes is DIM, each coordinate has ORDER bits
 
 typedef struct {
 	U_int hcode[ORDER];
 }KPart;///The derived key has ORDER parts, each part has DIM bits
 
 typedef HCord Point;
-typedef KPart KPart;
+typedef KPart HKey;
 
 
 /*===========================================================*/
 /* calc_P */
 /*===========================================================*/
-U_int calc_P(int i, HCord H)
+/*U_int calc_P(int i, HCord H)
 {
 	int element;
 	U_int P, temp1;//, temp2
@@ -67,24 +67,26 @@ U_int calc_P(int i, HCord H)
 	}
 	else
 		P >>= i % ORDER; /* P is a DIM bit hcode */
-	/* the & masks out spurious highbit values */
-#if DIM < ORDER
+/* the & masks out spurious highbit values */
+/*#if DIM < ORDER
 	P &= (1 << DIM) - 1;
 #endif
 	return P;
-}
+}*/
 
 /*===========================================================*/
-/* calc_P */
+/* calc_P ---Get each key part from the input key*/ 
 /*===========================================================*/
-U_int calc_P3(int i, Hcode H)
+U_int calc_P3(int i, HKey H)
 {
-	U_int mask = ((U_int)1 << (ORDER+1)) - 1;
+	/*U_int mask = ((U_int)1 << (ORDER+1)) - 1;
 	U_int P;//, temp2
 	
-	P = ((H.hcode[0] >> i) & mask);
+	P = ((H.hcode[0] >> i) & mask);*/
+
+	U_int P = H.hcode[(ORDER * DIM - i) / DIM - 1];
 	
-	return P;
+	return P ;
 }
 
 /*===========================================================*/
@@ -166,13 +168,15 @@ U_int calc_tS_tT2(U_int xJ, U_int val)
 /* H_decode */
 /*===========================================================*/
 /* For mapping from one dimension to DIM dimensions */
-Point H_decode(Hcode H)
+Point H_decode(HKey H)
 {
 	U_int mask = (U_int)1 << ORDER - 1,
 		A, W = 0, S, tS, T, tT, J, P = 0, xJ;
 	Point pt = { 0 };
 	int i = ORDER * DIM - DIM, j;
-	P = calc_P3(i, H);
+
+	P = calc_P3(i, H); //get key part from the hilbert key
+
 	J = calc_J(P);
 	xJ = J - 1;
 	A = S = tS = P ^ P / 2;
@@ -182,13 +186,14 @@ Point H_decode(Hcode H)
 	for (j = DIM - 1; A > 0; A >>= 1, j--)
 	{ 
 		if (A & 1)
-			pt.hcode[j] |= mask;
+			pt.cord[j] |= mask;
 	}
 	/*pt.hcode[(DIM*ORDER -i)/ORDER -1] = A;*/
 
 	for (i -= DIM, mask >>= 1; i >= 0; i -= DIM, mask >>= 1)
 	{
-		P = calc_P3(i, H);
+		P = calc_P3(i, H); //get key part from the hilbert key
+
 		S = P ^ P / 2;
 		tS = calc_tS_tT(xJ, S);
 		W ^= tT;
@@ -197,7 +202,7 @@ Point H_decode(Hcode H)
 		for (j = DIM - 1; A > 0; A >>= 1, j--)
 		{ 
 			if (A & 1)
-				pt.hcode[j] |= mask;
+				pt.cord[j] |= mask;
 		}
 		/*pt.hcode[(DIM*ORDER - i) / ORDER - 1] = A;*/
 
@@ -216,28 +221,35 @@ Point H_decode(Hcode H)
 /* H_encode */
 /*===========================================================*/
 /* For mapping from DIM dimensions to one dimension */
-Hcode H_encode(Point pt)
+HKey H_encode(Point pt)
 {
 	U_int mask = (U_int)1 << ORDER - 1, element,
 		A, W = 0, S, tS, T, tT, J, P = 0, xJ;
-	Hcode h = { 0 };
+	HKey h = { 0 };
 	int i = ORDER * DIM - DIM, j;
-	for (j = A = 0; j < DIM; j++)
+
+	A = 0;
+	for (j = 0; j < DIM; j++)
 	{ 
-		if (pt.hcode[j] & mask)
+		if (pt.cord[j] & mask)
 			A |= g_mask[j];
 	}
 	S = tS = A;
 	P = calc_P2(S);
 	/* add in DIM bits to hcode */
-	element = i / ORDER;
-	if (i % ORDER > ORDER - DIM)
+	//element = i / ORDER;
+	
+	/*if (i % ORDER > ORDER - DIM)
 	{
 		h.hcode[element] |= P << (i % ORDER);
 		h.hcode[element + 1] |= P >> (ORDER - i % ORDER);
 	}
 	else
-		h.hcode[element] |= P << (i - element * ORDER);
+		h.hcode[element] |= P << (i - element * ORDER);*/
+
+	element = (ORDER * DIM - i) / DIM - 1;
+	h.hcode[element] = P;
+	///h.hcode[0] |= P << i;
 	
 	J = calc_J(P);
 	xJ = J - 1;
@@ -245,9 +257,10 @@ Hcode H_encode(Point pt)
 	tT = T;
 	for (i -= DIM, mask >>= 1; i >= 0; i -= DIM, mask >>= 1)
 	{
-		for (j = A = 0; j < DIM; j++)
+		A = 0;
+		for (j = 0; j < DIM; j++)
 		{ 
-			if (pt.hcode[j] & mask)
+			if (pt.cord[j] & mask)
 				A |= g_mask[j];
 		}
 		W ^= tT;
@@ -255,7 +268,7 @@ Hcode H_encode(Point pt)
 		S = calc_tS_tT2(xJ, tS);
 		P = calc_P2(S);
 		/* add in DIM bits to hcode */
-		element = i / ORDER;
+		//element = i / ORDER;
 		/*if (i % ORDER > ORDER - DIM)
 		{
 			h.hcode[element] |= P << (i % ORDER);
@@ -263,9 +276,12 @@ Hcode H_encode(Point pt)
 		}
 		else
 			h.hcode[element] |= P << (i - element * ORDER);*/
-		h.hcode[0] |= P << i;
+		
+		element = (ORDER * DIM - i) / DIM - 1;
+		h.hcode[element] = P;
+		//h.hcode[0] |= P << i;
 
-		if (i >= 0)
+		if (i > 0)
 		{
 			T = calc_T(P);
 			tT = calc_tS_tT2(xJ, T);
@@ -299,54 +315,79 @@ void printBits(size_t const size, void const * const ptr)
 int _tmain(int argc, _TCHAR* argv[])
 {
 	Point pt;
-	////////////////////////////////
+	/*////////////////////////////////
 	///Butz's sample
-	pt.hcode[0] = 10;//1010
-	pt.hcode[1] = 11;//1011
-	pt.hcode[2] =  3;//0011
-	pt.hcode[3] = 13;//1101
-	pt.hcode[4] =  5;//0101
+	pt.cord[0] = 10;//1010
+	pt.cord[1] = 11;//1011
+	pt.cord[2] = 3;//0011
+	pt.cord[3] = 13;//1101
+	pt.cord[4] = 5;//0101
 
-	for (unsigned int i = 0; i < 5; i++)
+	for (unsigned int i = 0; i < DIM; i++)
 	{
-		printBits(sizeof(U_int), &(pt.hcode[i]));
+		printBits(sizeof(U_int), &(pt.cord[i]));
 	}
 	puts("");
 
-	Hcode h2 = { 0 };
+	HKey h2 = { 0 };
 	h2 = H_encode(pt);
 
-	printf_s("%d\n", h2.hcode[0]);
-	printBits(sizeof(U_int), &(h2.hcode[0]));
+	U_int nidx = 0;
+	
+	//print each key and the whole key
+	for (unsigned int i = 0; i < ORDER; i++)
+	{
+		nidx |= (h2.hcode[i] << (ORDER-i-1)*DIM);
+		printBits(sizeof(U_int), &(h2.hcode[i]));
+	}
+	printf_s("%d\n", nidx);
+	
 
 	puts("");
 	////////////////
 	Point pt2 = { 0 };
-	Hcode h3 = { 0 };
-	h3.hcode[0] = 624824;
+	HKey h3 = { 0 };
+	U_int ninput = 624824;
+
+	U_int mask = ((U_int)1 << (ORDER + 1)) - 1;
+	for (unsigned int i = 0; i < ORDER; i++)
+	{
+		//nidx |= (h2.hcode[i] << (ORDER - i - 1)*DIM);
+		//printBits(sizeof(U_int), &(h2.hcode[i]));
+		h3.hcode[i] = (ninput >> ((ORDER - i - 1)*DIM)) & mask;
+	}
+	
 	pt2 = H_decode(h3);
 
-	for (unsigned int i = 0; i < 5; i++)
+	for (unsigned int i = 0; i < DIM; i++)
 	{
-		printBits(sizeof(U_int), &(pt2.hcode[i]));
-	}
+		printBits(sizeof(U_int), &(pt2.cord[i]));
+	}*/
 
 	///////////////////////////////////
 	///2D sample
-	/*Hcode h2 = { 0 };
-	for (unsigned int i = 0; i < 8; i++)
+	HKey h4 = { 0 };
+	U_int nidx2 = 0;
+	for (unsigned int i = 0; i < 1 << ORDER; i++)
 	{
-		for (unsigned int j = 0; j < 8; j++)
+		for (unsigned int j = 0; j < 1 << ORDER; j++)
 		{
-			pt.hcode[0] = j;
-			pt.hcode[1] = i; // x in the lowest part
+			pt.cord[0] = j;
+			pt.cord[1] = i; // x in the lowest part
 			//coord[2] = 3;
 
-			h2 = H_encode(pt);
+			h4 = H_encode(pt);
 
-			printf_s("%d %d:  %d\n", i, j,  h2.hcode[0]);
+			/*printf_s("%d %d:  %d\n", i, j,  h4.hcode[0]);*/
+			nidx2 = 0;
+			for (unsigned int p = 0; p < ORDER; p++)
+			{
+				nidx2 |= (h4.hcode[p] << (ORDER - p - 1)*DIM);
+				//printBits(sizeof(U_int), &(h2.hcode[i]));
+			}
+			printf_s("%d %d:  %d\n", i, j, nidx2);
 		}
-	}*/
+	}
 
 	return 0;
 }
