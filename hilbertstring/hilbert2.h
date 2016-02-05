@@ -8,9 +8,9 @@ typedef unsigned long long U_int;
 //const U_int g_mask[] = { 2, 1 }; //the number is equal to the DIM
 
 //for butz's sample
-#define DIM 5 
-#define ORDER 4
-const U_int g_mask[] = { 16, 8, 4, 2, 1 };
+#define DIM 3 
+#define ORDER 32
+const U_int g_mask[] = {/* 16, 8,*/ 4, 2, 1 };
 
 
 typedef struct {
