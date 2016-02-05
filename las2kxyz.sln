@@ -9,6 +9,8 @@ Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "newhilbert", "newhilbert\ne
 EndProject
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "hilbert2", "hilbert2\hilbert2.vcxproj", "{59EA608D-FCF7-427B-AFDC-7903287B6AA1}"
 EndProject
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "hilbertstring", "hilbertstring\hilbertstring.vcxproj", "{EFC89BD1-D2F3-4D85-8CA1-2B9B37DFC41B}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Win32 = Debug|Win32
@@ -27,6 +29,10 @@ Global
 		{59EA608D-FCF7-427B-AFDC-7903287B6AA1}.Debug|Win32.Build.0 = Debug|Win32
 		{59EA608D-FCF7-427B-AFDC-7903287B6AA1}.Release|Win32.ActiveCfg = Release|Win32
 		{59EA608D-FCF7-427B-AFDC-7903287B6AA1}.Release|Win32.Build.0 = Release|Win32
+		{EFC89BD1-D2F3-4D85-8CA1-2B9B37DFC41B}.Debug|Win32.ActiveCfg = Debug|Win32
+		{EFC89BD1-D2F3-4D85-8CA1-2B9B37DFC41B}.Debug|Win32.Build.0 = Debug|Win32
+		{EFC89BD1-D2F3-4D85-8CA1-2B9B37DFC41B}.Release|Win32.ActiveCfg = Release|Win32
+		{EFC89BD1-D2F3-4D85-8CA1-2B9B37DFC41B}.Release|Win32.Build.0 = Release|Win32
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE

@@ -1,8 +1,8 @@
 // hilbert2.cpp : Defines the entry point for the console application.
 //
-
 #include "stdafx.h"
 
+#include "hilbert2.h"
 
 /*
 This code assumes the following:
@@ -24,29 +24,7 @@ bit in element no. (DIM - 1). eg.
 #if DIM == 6 const U_int g_mask[] = {32, 16, 8, 4, 2, 1}; #endif
 etc...
 */
-typedef unsigned long long U_int;
 
-//for 2d sample
-#define DIM 2 
-#define ORDER  2
-const U_int g_mask[] = { 2, 1 }; //the number is equal to the DIM
-
-//for butz's sample
-//#define DIM 5 
-//#define ORDER 4
-//const U_int g_mask[] = { 16, 8, 4, 2, 1 };
-
-
-typedef struct {
-	U_int cord[DIM];
-}HCord;//The numeber  of each point's coordiantes is DIM, each coordinate has ORDER bits
-
-typedef struct {
-	U_int hcode[ORDER];
-}KPart;///The derived key has ORDER parts, each part has DIM bits
-
-typedef HCord Point;
-typedef KPart HKey;
 
 
 /*===========================================================*/
@@ -292,6 +270,7 @@ HKey H_encode(Point pt)
 	return h;
 }
 
+/*
 void printBits(size_t const size, void const * const ptr)
 {
 	unsigned char *b = (unsigned char*)ptr;
@@ -311,11 +290,12 @@ void printBits(size_t const size, void const * const ptr)
 	puts("");
 	//cout << "";
 }
-
+*/
+/*
 int _tmain(int argc, _TCHAR* argv[])
 {
 	Point pt;
-	/*////////////////////////////////
+	//////////////////////////////////
 	///Butz's sample
 	pt.cord[0] = 10;//1010
 	pt.cord[1] = 11;//1011
@@ -362,7 +342,7 @@ int _tmain(int argc, _TCHAR* argv[])
 	for (unsigned int i = 0; i < DIM; i++)
 	{
 		printBits(sizeof(U_int), &(pt2.cord[i]));
-	}*/
+	}
 
 	///////////////////////////////////
 	///2D sample
@@ -378,7 +358,7 @@ int _tmain(int argc, _TCHAR* argv[])
 
 			h4 = H_encode(pt);
 
-			/*printf_s("%d %d:  %d\n", i, j,  h4.hcode[0]);*/
+			//printf_s("%d %d:  %d\n", i, j,  h4.hcode[0]);
 			nidx2 = 0;
 			for (unsigned int p = 0; p < ORDER; p++)
 			{
@@ -390,5 +370,5 @@ int _tmain(int argc, _TCHAR* argv[])
 	}
 
 	return 0;
-}
+}*/
 
