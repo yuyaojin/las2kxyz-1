@@ -4,9 +4,7 @@
 #include "stdafx.h"
 
 #include "hilbert2.h"
-#include "CyoEncode.h"
-#include "CyoDecode.h"
-
+#include <stdlib.h>
 #include <string.h>
 
 static const char* const BASE64_TABLE_E = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/=";
@@ -87,11 +85,11 @@ int _tmain(int argc, _TCHAR* argv[])
 	int ntotalbits = DIM * ORDER;
 	int nstrlen = ntotalbits / 6;
 
-	char* szstr = (char*)malloc(nstrlen + 2);
-	memset(szstr, 0, nstrlen + 2);
-	int valid = strlen(szstr);
+	char* szstr = (char*)malloc(nstrlen + 1); //last char for zero
+	memset(szstr, 0, nstrlen + 1);
+	int valid = strlen(szstr); //should be zero here
 
-	U_int ncombine;
+	U_int ncombine; //first|second
 	for (unsigned int i = 0; i < ORDER; i += 2) //the dim number are 3 here, combine every 2 parts, we get 6 bits
 	{
 		ncombine = 0;
@@ -121,8 +119,7 @@ int _tmain(int argc, _TCHAR* argv[])
 		ncombine = BASE64_TABLE_D[*(szstr + i)]; //find the index by the BASE64 character
 
 		//printf("%d \n", ncombine);
-		pParts[2 * i + 1] = pParts[2 * i] = 0;
-		
+				
 		pParts[2 * i] = (ncombine >> DIM ) & mask; //the first part
 		pParts[2 * i + 1] = ncombine & mask; //the second part
 
