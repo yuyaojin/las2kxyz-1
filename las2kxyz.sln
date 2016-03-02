@@ -11,6 +11,8 @@ Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "hilbert2", "hilbert2\hilber
 EndProject
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "hilbertstring", "hilbertstring\hilbertstring.vcxproj", "{EFC89BD1-D2F3-4D85-8CA1-2B9B37DFC41B}"
 EndProject
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "newlas2kxyz", "newlas2kxyz\newlas2kxyz.vcxproj", "{FFA5C2FD-6967-4F14-88CA-94CC55CB8E6C}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Win32 = Debug|Win32
@@ -33,6 +35,10 @@ Global
 		{EFC89BD1-D2F3-4D85-8CA1-2B9B37DFC41B}.Debug|Win32.Build.0 = Debug|Win32
 		{EFC89BD1-D2F3-4D85-8CA1-2B9B37DFC41B}.Release|Win32.ActiveCfg = Release|Win32
 		{EFC89BD1-D2F3-4D85-8CA1-2B9B37DFC41B}.Release|Win32.Build.0 = Release|Win32
+		{FFA5C2FD-6967-4F14-88CA-94CC55CB8E6C}.Debug|Win32.ActiveCfg = Debug|Win32
+		{FFA5C2FD-6967-4F14-88CA-94CC55CB8E6C}.Debug|Win32.Build.0 = Debug|Win32
+		{FFA5C2FD-6967-4F14-88CA-94CC55CB8E6C}.Release|Win32.ActiveCfg = Release|Win32
+		{FFA5C2FD-6967-4F14-88CA-94CC55CB8E6C}.Release|Win32.Build.0 = Release|Win32
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
