@@ -8,6 +8,8 @@
 #include <math.h>
 #include <stdbool.h>
 
+#include <time.h>
+
 /*
 ===============================================================================
 FILE:  las2txt.cpp
@@ -1384,6 +1386,10 @@ int main(int argc, char *argv[])
 
 		char* szstr = (char*)malloc(nstrlen + 1); //last char for zero
 
+		///////////
+		clock_t begin, duration;
+		begin = clock();
+
 		long long XI, YI;
 		while (lasreader->read_point())
 		{
@@ -1709,6 +1715,10 @@ int main(int argc, char *argv[])
 
 			pix++;
 		}
+
+		duration = clock() - begin;
+
+		printf("conversion time: %d ms\n", duration * 1000 / CLOCKS_PER_SEC);
 		//////
 		free(szstr);
 		szstr = NULL;
