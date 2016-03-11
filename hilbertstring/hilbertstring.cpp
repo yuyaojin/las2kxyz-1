@@ -7,6 +7,35 @@
 #include <stdlib.h>
 #include <string.h>
 
+#include <stdint.h>
+#include <limits.h>
+#include <math.h>
+
+
+///////////////////////////////////////////////////////
+//3D Morton
+// method to seperate bits from a given integer 3 positions apart
+inline uint64_t splitBy3(unsigned int a)
+{
+	uint64_t x = a & 0x1fffff; // we only look at the first 21 bits
+	x = (x | x << 32) & 0x1f00000000ffff; // shift left 32 bits, OR with self, and 00011111000000000000000000000000000000001111111111111111
+	x = (x | x << 16) & 0x1f0000ff0000ff; // shift left 32 bits, OR with self, and 00011111000000000000000011111111000000000000000011111111
+	x = (x | x << 8) & 0x100f00f00f00f00f; // shift left 32 bits, OR with self, and 0001000000001111000000001111000000001111000000001111000000000000
+	x = (x | x << 4) & 0x10c30c30c30c30c3; // shift left 32 bits, OR with self, and 0001000011000011000011000011000011000011000011000011000100000000
+	x = (x | x << 2) & 0x1249249249249249;
+	return x;
+}
+
+inline uint64_t mortonEncode_magicbits(unsigned int x, unsigned int y,
+	unsigned int z)
+{
+	uint64_t answer = 0;
+	answer |= splitBy3(x) | splitBy3(y) << 1 | splitBy3(z) << 2;
+	return answer;
+}
+//////////////////////////////////////////////////////////
+
+
 /////the original BASE64 table
 ////////////////////////////////////DEC////0                       25|26                    51|52      61|626364
 ////////////////////////////////////HEX////00                      19|1a                    33|34      3d|3e3f40
@@ -159,6 +188,22 @@ int _tmain(int argc, _TCHAR* argv[])
 		printBits(sizeof(U_int), &(pParts[2 * i]));
 		printBits(sizeof(U_int), &(pParts[2 * i + 1]));
 	}
+
+	//////////////////////////////////////////////////////////////////
+	///comparison between HS adn MS; first is morton, then the hilbert
+	int iter;
+	for ( iter = 0; iter < 100000; iter++)
+	{
+		
+	}
+
+	for (iter = 0; iter < 100000; iter++)
+	{
+
+	}
+
+
+	/////////////////////////////////////////////////////////////////
 
 	free(szstr);
 	szstr = NULL;
