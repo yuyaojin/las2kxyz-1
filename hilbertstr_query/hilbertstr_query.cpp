@@ -106,6 +106,12 @@ void printBits(size_t const size, void const * const ptr)
 	//cout << "";
 }
 
+int compare(const void * a, const void * b)
+{
+	return (*(int*)a - *(int*)b);
+}
+
+
 int _tmain(int argc, _TCHAR* argv[])
 {
 	clock_t begin, duration;
@@ -242,16 +248,25 @@ int _tmain(int argc, _TCHAR* argv[])
 			h2 = H_encode(pt);
 
 			memset(szstr, 0, nstrlen + 1);
-			for (unsigned int i = 0; i < ORDER; i += 2) //the dim number are 3 here, combine every 2 parts, we get 6 bits
+			//for (unsigned int i = 0; i < ORDER; i += 2) //the dim number are 3 here, combine every 2 parts, we get 6 bits
+			//{
+			//	ncombine = 0;
+			//	ncombine |= h2.hcode[i] << DIM; //first 3 bits
+			//	ncombine |= h2.hcode[i + 1]; //second 3 bits
+
+			//	*(szstr + i / 2) = BASE64_TABLE_E2[ncombine]; //get the BASE64 character directly, just copy it				
+			//}
+			//print
+			int nidx2 = 0;
+			for (unsigned int p = 0; p < ORDER; p++)
 			{
-				ncombine = 0;
-				ncombine |= h2.hcode[i] << DIM; //first 3 bits
-				ncombine |= h2.hcode[i + 1]; //second 3 bits
-
-				*(szstr + i / 2) = BASE64_TABLE_E2[ncombine]; //get the BASE64 character directly, just copy it
-
-				//print
+				nidx2 |= (h2.hcode[p] << (ORDER - p - 1)*DIM);
+				//printBits(sizeof(U_int), &(h2.hcode[i]));
 			}
+
+			szstr[0] = BASE64_TABLE_E2[nidx2];
+
+			printf("point: %d, %d ---   %d   %s \n", row, col, nidx2, szstr);
 		}//end for col
 	}//end for row
 
@@ -261,6 +276,78 @@ int _tmain(int argc, _TCHAR* argv[])
 
 
 	/////////////////////////////////////////////////////////////////
+	///range query---brute-force
+	int x0, x1;
+	int y0, y1;
+
+	x0 = 3; x1 = 5;
+	y0 = 2; y1 = 5;
+
+	int rows = x1 - x0 + 1;
+	int cols = y1 - y0 + 1;
+
+	int* pcodelist = new int(rows*cols);
+	memset(pcodelist, 0, sizeof(int)*rows*cols);
+	
+	//int idx = 0;
+	for (int row = x0; row <= x1; row++)
+	{
+		for (int col = y0; col <= y1; col++)
+		{
+			////////////
+			pt.cord[0] = col;//1010
+			pt.cord[1] = row;//1011
+
+			h2 = H_encode(pt);
+
+			//memset(szstr, 0, nstrlen + 1);
+			
+			int nidx2 = 0;
+			for (unsigned int p = 0; p < ORDER; p++)
+			{
+				nidx2 |= (h2.hcode[p] << (ORDER - p - 1)*DIM);
+				//printBits(sizeof(U_int), &(h2.hcode[i]));
+			}
+
+			//szstr[0] = BASE64_TABLE_E2[nidx2];
+
+			pcodelist[(row-x0)*cols + (col -y0)] = nidx2;
+			//pcodelist[idx] = nidx2;
+			//idx++;
+
+			printf("query: %d, %d, %d ---   %d \n", row, col, (row - x0)*cols + (col - y0), nidx2);
+		}
+	}
+
+	for (int i = 0; i < rows*cols; i++)
+	{
+		printf("before sort: %d, %d \n", i,  pcodelist[i]);
+	}
+
+	
+	qsort(pcodelist, rows*cols, sizeof(int), compare);
+
+	for (int i = 0; i < rows*cols; i++)
+	{
+		printf("after sort: %d, %d \n", i, pcodelist[i]);
+	}
+
+	int nstart = 0;
+	int ncur = nstart;
+	while (ncur < cols*rows)
+	{
+		ncur++;
+		if (pcodelist[ncur] - pcodelist[ncur-1] !=1) // not continuous
+		{
+			printf_s("%d, %d\n", pcodelist[nstart], pcodelist[ncur-1]);
+
+			nstart = ncur;
+		}
+	} 
+
+	//delete[] pcodelist;
+	////////////////////////////////////////////////////////////////
+
 
 	//free(szstr);
 	free(szstr);

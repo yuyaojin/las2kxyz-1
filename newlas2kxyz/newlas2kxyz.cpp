@@ -1357,6 +1357,7 @@ int main(int argc, char *argv[])
 
 		////added by gxf, generate the importance value for each point
 		long nPts = lasreader->npoints;
+		fprintf(stderr, "%d\n", nPts);
 
 		unsigned int* dataPts = new unsigned int[nPts];
 		memset(dataPts, 0, nPts * sizeof(unsigned int));

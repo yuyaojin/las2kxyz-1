@@ -416,7 +416,7 @@ int ConvertHkey2Str(HKey key, char* szstr, int strlen)
 		//valid = strlen(szstr);
 	}
 
-	printf("hilbert string is %s\n", szstr);
+	//printf("hilbert string is %s\n", szstr);
 
 	return 0;
 }

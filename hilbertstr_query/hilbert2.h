@@ -4,7 +4,7 @@ typedef unsigned long long U_int;
 
 //for 2d sample
 #define DIM 2 
-#define ORDER  6
+#define ORDER  3
 const U_int g_mask[] = { 2, 1 }; //the number is equal to the DIM
 
 //for butz's sample
