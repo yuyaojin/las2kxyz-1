@@ -11,6 +11,9 @@
 #include <math.h>
 #include <time.h>
 
+#include <vector>
+using namespace std;
+
 
 ///////////////////////////////////////////////////////
 //3D Morton
@@ -118,7 +121,7 @@ public:
 	int x1;
 	int y0;
 	int y1;
-	
+
 	rect() : x0(0), x1(0), y0(0), y1(0)
 	{
 		;
@@ -163,9 +166,9 @@ public:
 			nchild.y0 = this->y0;
 		else
 			nchild.y0 = this->y0 + this->width / 2;
-		
-		nchild.width = this->width/2;
-		nchild.level = this->level+1;
+
+		nchild.width = this->width / 2;
+		nchild.level = this->level + 1;
 
 		return nchild;
 	}
@@ -194,22 +197,76 @@ public:
 	}
 };
 
+int point2hilbertcode(int x, int y)
+{
+	Point pt;
+	pt.cord[0] = y;//col
+	pt.cord[1] = x;//row
+
+	HKey h3 = { 0 };
+	h3 = H_encode(pt);
+
+	int nidx2 = 0;
+	for (unsigned int p = 0; p < ORDER; p++)
+	{
+		nidx2 |= (h3.hcode[p] << (ORDER - p - 1)*DIM);
+	}
+
+	return nidx2;
+}
+
+//vector<int> g_sfcinterval;
+void treenode2sfcinterval(node nd)
+{
+	if (nd.width == 1) //leaf node
+	{
+		int code = point2hilbertcode(nd.x0, nd.y0);
+		//g_sfcinterval.push_back(code);
+		//g_sfcinterval.push_back(code);
+
+		printf("sfc interval: %d --- %d\n", code, code);
+	}
+	else //middle node
+	{
+		//get four corners, then get min and max sfc code
+		int x0, y0, x1, y1;
+		x0 = nd.x0; y0 = nd.y0;
+		x1 = nd.x0 + nd.width - 1; //point to cell center
+		y1 = nd.y0 + nd.width - 1; //point to cell center
+
+		int sfccode[4];
+		sfccode[0] = point2hilbertcode(x0, y0);
+		sfccode[1] = point2hilbertcode(x0, y1);
+		sfccode[2] = point2hilbertcode(x1, y0);
+		sfccode[3] = point2hilbertcode(x1, y1);
+
+		qsort(sfccode, 4, sizeof(int), compare);
+
+		//g_sfcinterval.push_back(sfccode[0]);
+		//g_sfcinterval.push_back(sfccode[3]);
+
+		printf("sfc interval: %d --- %d\n", sfccode[0], sfccode[3]);
+	}
+}
+
 
 /////////////////////////////////////////////////////////////
-///int x0, int y0, int x1, int y1---input query rectangle
-///int level, int nx, int ny-----contain node
+///comparison between the tree node and the query rectangle
 int query_approximate(node nd, rect qrt)
 {
-	////this current node fully contains the input query rectangle
+	////this tree node now fully contains the input query rectangle
 	////firstly to check this node is the leaf node: yes, stop here
 	if (nd.level == ORDER)
 	{
-		printf("node level : %d, (%d, %d)\n", nd.level, nd.x0, nd.y0);
+		printf("node level : %d, width %d, orig (%d, %d), dest (%d, %d)\n", \
+			nd.level, nd.width, nd.x0, nd.y0, nd.x0 + nd.width, nd.y0 + nd.width);
+
+		treenode2sfcinterval(nd);
 		return 0;
 	}
 
-	////check the spatial relationship bwtween this query rectangle with four children
-	node nchild[4];	
+	////check the spatial relationship between this query rectangle and four children
+	node nchild[4];
 
 	for (int i = 0; i < 4; i++)
 	{
@@ -218,12 +275,15 @@ int query_approximate(node nd, rect qrt)
 
 	for (int i = 0; i < 4; i++)
 	{
-		//nchild[i] = nd.getchildnode(i);
 		int nrt = nchild[i].spatialrelationship(qrt);
 
-		if (nrt == 0)//equal to one child, that's enough
+		if (nrt == 0)//equal to one child, that's enough, stop here
 		{
-			printf("node level : %d, (%d, %d)\n", nchild[i].level, nchild[i].x0, nchild[i].y0);
+			printf("node level : %d, width %d, orig (%d, %d), dest (%d, %d)\n", \
+				nchild[i].level, nchild[i].width, nchild[i].x0, nchild[i].y0, \
+				nchild[i].x0 + nchild[i].width, nchild[i].y0 + nchild[i].width);
+
+			treenode2sfcinterval(nchild[i]);
 			return 0;
 		}
 		if (nrt == 1)//fully contained by one child,then go down directly
@@ -239,36 +299,68 @@ int query_approximate(node nd, rect qrt)
 		}
 	}
 
-	/////this node is divided to get the 4 child nodes
-	/////also to divide the input query rectangle into 2 or 4 parts(ONLY 2 or 4 here!!!)
+	/////this tree node is divided to get the 4 child nodes
+	/////also to divide the input query rectangle into 2 or 4 parts(ONLY 2 or 4 here!!!)---5 CASES!!!
 	//0~3 for 2d; upper 2|3;
 	//            lower 0|1
 	rect rt0, rt1, rt2, rt3;
+
 	int midx, midy;
 	midx = nd.x0 + nd.width / 2;
-	midy = nd.y0 + nd.width / 2;	
+	midy = nd.y0 + nd.width / 2;
 
-	if (nchild[0].spatialrelationship(qrt)==2) //truly intersect 0
+	if (midx > qrt.x0 && midx < qrt.x1) //x dimesion: mid in the qrt center
 	{
-		rt0.set(qrt.x0, qrt.y0, midx, midy);
+		if (midy > qrt.y0 && midy < qrt.y1) //y dimesion: mid in the qrt center--- 4 parts:0,1,2,3
+		{
+			rt0.set(qrt.x0, qrt.y0, midx, midy);
+			query_approximate(nchild[0], rt0);
+
+			rt1.set(midx, qrt.y0, qrt.x1, midy);
+			query_approximate(nchild[1], rt1);
+
+			rt2.set(qrt.x0, midy, midx, qrt.y1);
+			query_approximate(nchild[2], rt2);
+
+			rt3.set(midx, midy, qrt.x1, qrt.y1);
+			query_approximate(nchild[3], rt3);
+		}
+
+		if (midy <= qrt.y0) //x dimesion: qrt on the top ----2 parts: 2,3 
+		{
+			rt2.set(qrt.x0, qrt.y0, midx, qrt.y1);
+			query_approximate(nchild[2], rt2);
+
+			rt3.set(midx, qrt.y0, qrt.x1, qrt.y1);
+			query_approximate(nchild[3], rt3);
+		}
+
+		if (midy >= qrt.y1) //x dimesion: qrt on the bottom----2 parts:  0,1 
+		{
+			rt0.set(qrt.x0, qrt.y0, midx, qrt.y1);
+			query_approximate(nchild[0], rt0);
+
+			rt1.set(midx, qrt.y0, qrt.x1, qrt.y1);
+			query_approximate(nchild[1], rt1);
+		}
+
+	}
+
+	if (midx >= qrt.x1) //x dimesion: qrt on the left----2 parts: 0, 2
+	{
+		rt0.set(qrt.x0, qrt.y0, qrt.x1, midy);
 		query_approximate(nchild[0], rt0);
-	}
 
-	if (nchild[1].spatialrelationship(qrt) == 2) //truly intersect 1
-	{
-		rt1.set(midx,qrt.y0, qrt.x1, midy);
-		query_approximate(nchild[1], rt1);
-	}
-
-	if (nchild[2].spatialrelationship(qrt) == 2) //truly intersect 2
-	{
-		rt2.set(qrt.x0, midy, midx, qrt.y1);
+		rt2.set(qrt.x0, midy, qrt.x1, qrt.y1);
 		query_approximate(nchild[2], rt2);
 	}
 
-	if (nchild[3].spatialrelationship(qrt) == 2) //truly intersect 3
+	if (midx <= qrt.x0) //x dimesion: qrt on the right ----2 parts: 1,3
 	{
-		rt3.set(midx, midy, qrt.x1, qrt.y1);
+		rt1.set(qrt.x0, qrt.y0, qrt.x1, midy);
+		query_approximate(nchild[1], rt1);
+
+		rt3.set(qrt.x0, midy, qrt.x1, qrt.y1);
 		query_approximate(nchild[3], rt3);
 	}
 
@@ -281,114 +373,6 @@ int _tmain(int argc, _TCHAR* argv[])
 	clock_t begin, duration;
 
 	Point pt;
-	/////////////////////////////////////////////////////
-	/////input 3D point
-	//pt.cord[0] = 3;//1010
-	//pt.cord[1] = 4;//1011
-	////pt.cord[2] = 5;//0011
-	////pt.cord[3] = 13;//1101
-	////pt.cord[4] = 5;//0101
-
-	//for (unsigned int i = 0; i < DIM; i++)
-	//{
-	//	printBits(sizeof(U_int), &(pt.cord[i]));
-	//}
-	//puts("");
-
-	//////////////////////////////////////////////////////////////
-	/////calculate the hilbert code 
-	//HKey h2 = { 0 };
-	//h2 = H_encode(pt);
-
-	////U_int nidx = 0;
-	////print each key and the whole key
-	//for (unsigned int i = 0; i < ORDER; i++)
-	//{
-	//	//nidx |= (h2.hcode[i] << (ORDER - i - 1)*DIM);
-	//	printBits(sizeof(U_int), &(h2.hcode[i]));
-	//}
-	////printf_s("%d\n", nidx);
-
-	///////////////////////////////////////////////////////////
-	/////convert the hilbert code to hilbert string
-	//int ntotalbits = DIM * ORDER;
-	//int nstrlen = ntotalbits / 6;
-
-	//char* szstr = (char*)malloc(nstrlen + 1); //last char for zero
-	//memset(szstr, 0, nstrlen + 1);
-	//int valid = strlen(szstr); //should be zero here
-
-	//U_int ncombine; //first|second
-	//for (unsigned int i = 0; i < ORDER; i += 2) //the dim number are 3 here, combine every 2 parts, we get 6 bits
-	//{
-	//	ncombine = 0;
-	//	ncombine |= h2.hcode[i] << DIM; //first 3 bits
-	//	ncombine |= h2.hcode[i + 1]; //second 3 bits
-
-	//	printf("%d \n", ncombine);
-	//	printf("%d \n", h2.hcode[i]);
-	//	printf("%d \n", h2.hcode[i + 1]);
-
-	//	if (ncombine<0 || ncombine>63)
-	//	{
-	//		int err = 0;
-	//	}
-
-	//	*(szstr + i / 2) = BASE64_TABLE_E2[ncombine]; //get the BASE64 character directly, just copy it
-
-	//	//valid = strlen(szstr);
-	//}
-
-	//printf("hilbert string is %s\n", szstr);
-
-	/////////////////////////////////////////////////////////
-	////decode the hilbert string to hilbert code
-	//U_int pParts[ORDER] = { 0 }; //for hibert code parts, number is ORDER, each part is DIM bits
-	//U_int mask = ((U_int)1 << DIM) - 1;
-
-	//unsigned int nhilberstrlen = strlen(szstr);
-	//ncombine = 0;
-	//for (unsigned int i = 0; i < nhilberstrlen; i++)
-	//{
-	//	ncombine = BASE64_TABLE_D2[*(szstr + i)]; //find the index by the BASE64 character
-
-	//	//printf("%d \n", ncombine);
-
-	//	pParts[2 * i] = (ncombine >> DIM) & mask; //the first part
-	//	pParts[2 * i + 1] = ncombine & mask; //the second part
-
-	//	if (pParts[2 * i] != h2.hcode[2 * i] || pParts[2 * i + 1] != h2.hcode[2 * i + 1])
-	//	{
-	//		printf(" error! not equal \n");
-	//	}
-
-	//	printBits(sizeof(U_int), &(pParts[2 * i]));
-	//	printBits(sizeof(U_int), &(pParts[2 * i + 1]));
-	//}
-
-	//////////////////////////////////////////////////////////////////
-	///comparison between HS adn MS; first is morton, then the hilbert
-	//begin = clock();
-
-	//int iter;
-	//for (iter = 0; iter < 1000000; iter++)
-	//{
-	//	h2 = H_encode(pt);
-
-	//	memset(szstr, 0, nstrlen + 1);
-	//	for (unsigned int i = 0; i < ORDER; i += 2) //the dim number are 3 here, combine every 2 parts, we get 6 bits
-	//	{
-	//		ncombine = 0;
-	//		ncombine |= h2.hcode[i] << DIM; //first 3 bits
-	//		ncombine |= h2.hcode[i + 1]; //second 3 bits
-
-	//		*(szstr + i / 2) = BASE64_TABLE_E2[ncombine]; //get the BASE64 character directly, just copy it
-	//	}
-	//}
-	//duration = clock() - begin;
-
-	//printf("morton time: %d ms\n", duration * 1000 / CLOCKS_PER_SEC);
-
 	//////////////////
 	//U_int ncombine;
 
@@ -441,24 +425,28 @@ int _tmain(int argc, _TCHAR* argv[])
 
 	/////////////////////////////////////////////////////////////////
 	///range query---brute-force
+	printf("--------range query by brute-force--------\n");
 	int x0, x1;
 	int y0, y1;
 
 	x0 = 3; x1 = 5;
 	y0 = 2; y1 = 5;
 
+	/*x0 = 2; x1 = 4;
+	y0 = 1; y1 = 2;*/
+
 	int rows = x1 - x0 + 1;
 	int cols = y1 - y0 + 1;
 
 	int* pcodelist = new int(rows*cols);
 	memset(pcodelist, 0, sizeof(int)*rows*cols);
-	
+
 	//int idx = 0;
 	//for (int row = x0; row <= x1; row++)
 	//{
 	//	for (int col = y0; col <= y1; col++)
 	//	{
-//#pragma omp for schedule(dynamic)
+	//#pragma omp for schedule(dynamic)
 	for (int i = 0; i < rows*cols; i++)
 	{
 		int col, row;
@@ -487,17 +475,17 @@ int _tmain(int argc, _TCHAR* argv[])
 		//pcodelist[idx] = nidx2;
 		//idx++;
 
-		printf("query: %d, %d, %d ---   %d \n", row, col, (row - x0)*cols + (col - y0), nidx2);
+		printf("query cell: %d, %d, %d ---   %d \n", row, col, (row - x0)*cols + (col - y0), nidx2);
 	}
 	/*	}
 	}*/
 
 	for (int i = 0; i < rows*cols; i++)
 	{
-		printf("before sort: %d, %d \n", i,  pcodelist[i]);
+		printf("before sort: %d, %d \n", i, pcodelist[i]);
 	}
 
-	
+
 	qsort(pcodelist, rows*cols, sizeof(int), compare);
 
 	for (int i = 0; i < rows*cols; i++)
@@ -510,17 +498,18 @@ int _tmain(int argc, _TCHAR* argv[])
 	while (ncur < cols*rows)
 	{
 		ncur++;
-		if (pcodelist[ncur] - pcodelist[ncur-1] !=1) // not continuous
+		if (pcodelist[ncur] - pcodelist[ncur - 1] != 1) // not continuous
 		{
-			printf_s("%d, %d\n", pcodelist[nstart], pcodelist[ncur-1]);
+			printf_s("%d, %d\n", pcodelist[nstart], pcodelist[ncur - 1]);
 
 			nstart = ncur;
 		}
-	} 
+	}
 
 	//delete[] pcodelist;
 	////////////////////////////////////////////////////////////////
-	////recursive approximation
+	////range query by recursive approximation
+	printf("--------range query by recursive approximation--------\n");
 	node root;
 	root.level = 0;
 	root.x0 = 0;
@@ -528,14 +517,18 @@ int _tmain(int argc, _TCHAR* argv[])
 	root.width = 8;
 
 	rect qrt;
-	qrt.x0 = 3; qrt.x1 = 6;
-	qrt.y0 = 2; qrt.y1 = 6;
+	qrt.x0 = 3; qrt.x1 = 6; //here,point coordidate is located on lef-bottom of the correspoind cell
+	qrt.y0 = 2; qrt.y1 = 6; //so the right-top coordidate equals cell center + 1
+
+	/*qrt.x0 = 2; qrt.x1 = 5;
+	qrt.y0 = 1; qrt.y1 = 3;*/
 
 	///check if the root node contains or eqauls the query rectangle
 	int res = root.spatialrelationship(qrt);
 	if (res == 0) ///equals
 	{
-		printf("node level : %d, (%d, %d)\n", root.level , root.x0 , root.y0);
+		printf("node level : %d, width %d, orig (%d, %d), dest (%d, %d)\n", \
+			root.level, root.width, root.x0, root.y0, root.x0 + root.width, root.y0 + root.width);
 	}
 
 	if (res == 1) //fully contain 
