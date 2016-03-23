@@ -111,6 +111,170 @@ int compare(const void * a, const void * b)
 	return (*(int*)a - *(int*)b);
 }
 
+class rect
+{
+public:
+	int x0;
+	int x1;
+	int y0;
+	int y1;
+	
+	rect() : x0(0), x1(0), y0(0), y1(0)
+	{
+		;
+	}
+
+	rect(int ix0, int iy0, int ix1, int iy1)
+		: x0(ix0), y0(iy0), x1(ix1), y1(iy1)
+	{
+		;
+	}
+
+	void set(int ix0, int iy0, int ix1, int iy1)
+	{
+		x0 = ix0; y0 = iy0; x1 = ix1;  y1 = iy1;
+	}
+};
+
+
+class node
+{
+public:
+	//int ndim;
+
+	int x0;
+	int y0;
+	int width;
+	int level;
+
+	//0~3 for 2d; upper 2|3;
+	//            lower 0|1
+
+	node getchildnode(int idx)
+	{
+		node nchild;
+
+		if (idx == 0 || idx == 2)
+			nchild.x0 = this->x0;
+		else
+			nchild.x0 = this->x0 + this->width / 2;
+
+		if (idx == 0 || idx == 1)
+			nchild.y0 = this->y0;
+		else
+			nchild.y0 = this->y0 + this->width / 2;
+		
+		nchild.width = this->width/2;
+		nchild.level = this->level+1;
+
+		return nchild;
+	}
+
+	int spatialrelationship(rect qrt)//0 = equal; 1=contain;2=intersect; default = -1  not overlap ;
+	{
+		rect nrt(this->x0, this->y0, this->x0 + this->width, this->y0 + this->width);
+		///equal
+		if (nrt.x0 == qrt.x0 && nrt.y0 == qrt.y0 && \
+			nrt.x1 == qrt.x1 && nrt.y1 == qrt.y1)
+			return 0;
+
+		//fully contain(how about edge touch?)
+		if (nrt.x0 <= qrt.x0 && nrt.y0 <= qrt.y0 && \
+			nrt.x1 >= qrt.x1 && nrt.y1 >= qrt.y1)
+			return 1;
+
+		//intersect
+		///http://stackoverflow.com/questions/306316/determine-if-two-rectangles-overlap-each-other
+		///RectA.Left < RectB.Right && RectA.Right > RectB.Left && RectA.Top > RectB.Bottom && RectA.Bottom < RectB.Top
+		if (nrt.x0 < qrt.x1 && nrt.x1 > qrt.x0 && \
+			nrt.y1 > qrt.y0 && nrt.y0 < qrt.y1)
+			return 2;
+
+		return -1; //not overlap
+	}
+};
+
+
+/////////////////////////////////////////////////////////////
+///int x0, int y0, int x1, int y1---input query rectangle
+///int level, int nx, int ny-----contain node
+int query_approximate(node nd, rect qrt)
+{
+	////this current node fully contains the input query rectangle
+	////firstly to check this node is the leaf node: yes, stop here
+	if (nd.level == ORDER)
+	{
+		printf("node level : %d, (%d, %d)\n", nd.level, nd.x0, nd.y0);
+		return 0;
+	}
+
+	////check the spatial relationship bwtween this query rectangle with four children
+	node nchild[4];	
+
+	for (int i = 0; i < 4; i++)
+	{
+		nchild[i] = nd.getchildnode(i);
+	}
+
+	for (int i = 0; i < 4; i++)
+	{
+		//nchild[i] = nd.getchildnode(i);
+		int nrt = nchild[i].spatialrelationship(qrt);
+
+		if (nrt == 0)//equal to one child, that's enough
+		{
+			printf("node level : %d, (%d, %d)\n", nchild[i].level, nchild[i].x0, nchild[i].y0);
+			return 0;
+		}
+		if (nrt == 1)//fully contained by one child,then go down directly
+		{
+			query_approximate(nchild[i], qrt);
+			return 0;
+		}
+
+		//intersect one child (i.e. smaller than this node and bigger than one child), this means further division
+		if (nrt == 2)
+		{
+			break;
+		}
+	}
+
+	/////this node is divided to get the 4 child nodes
+	/////also to divide the input query rectangle into 2 or 4 parts(ONLY 2 or 4 here!!!)
+	//0~3 for 2d; upper 2|3;
+	//            lower 0|1
+	rect rt0, rt1, rt2, rt3;
+	int midx, midy;
+	midx = nd.x0 + nd.width / 2;
+	midy = nd.y0 + nd.width / 2;	
+
+	if (nchild[0].spatialrelationship(qrt)==2) //truly intersect 0
+	{
+		rt0.set(qrt.x0, qrt.y0, midx, midy);
+		query_approximate(nchild[0], rt0);
+	}
+
+	if (nchild[1].spatialrelationship(qrt) == 2) //truly intersect 1
+	{
+		rt1.set(midx,qrt.y0, qrt.x1, midy);
+		query_approximate(nchild[1], rt1);
+	}
+
+	if (nchild[2].spatialrelationship(qrt) == 2) //truly intersect 2
+	{
+		rt2.set(qrt.x0, midy, midx, qrt.y1);
+		query_approximate(nchild[2], rt2);
+	}
+
+	if (nchild[3].spatialrelationship(qrt) == 2) //truly intersect 3
+	{
+		rt3.set(midx, midy, qrt.x1, qrt.y1);
+		query_approximate(nchild[3], rt3);
+	}
+
+	return 0;
+}
+
 
 int _tmain(int argc, _TCHAR* argv[])
 {
@@ -226,7 +390,7 @@ int _tmain(int argc, _TCHAR* argv[])
 	//printf("morton time: %d ms\n", duration * 1000 / CLOCKS_PER_SEC);
 
 	//////////////////
-	U_int ncombine;
+	//U_int ncombine;
 
 	int ntotalbits = DIM * ORDER;
 	int nstrlen = ntotalbits / 6;
@@ -290,34 +454,43 @@ int _tmain(int argc, _TCHAR* argv[])
 	memset(pcodelist, 0, sizeof(int)*rows*cols);
 	
 	//int idx = 0;
-	for (int row = x0; row <= x1; row++)
+	//for (int row = x0; row <= x1; row++)
+	//{
+	//	for (int col = y0; col <= y1; col++)
+	//	{
+//#pragma omp for schedule(dynamic)
+	for (int i = 0; i < rows*cols; i++)
 	{
-		for (int col = y0; col <= y1; col++)
+		int col, row;
+		col = i % cols + y0;
+		row = i / cols + x0;
+		////////////
+		pt.cord[0] = col;//1010
+		pt.cord[1] = row;//1011
+
+		HKey h3 = { 0 };
+		h3 = H_encode(pt);
+
+		//memset(szstr, 0, nstrlen + 1);
+
+		int nidx2 = 0;
+		for (unsigned int p = 0; p < ORDER; p++)
 		{
-			////////////
-			pt.cord[0] = col;//1010
-			pt.cord[1] = row;//1011
-
-			h2 = H_encode(pt);
-
-			//memset(szstr, 0, nstrlen + 1);
-			
-			int nidx2 = 0;
-			for (unsigned int p = 0; p < ORDER; p++)
-			{
-				nidx2 |= (h2.hcode[p] << (ORDER - p - 1)*DIM);
-				//printBits(sizeof(U_int), &(h2.hcode[i]));
-			}
-
-			//szstr[0] = BASE64_TABLE_E2[nidx2];
-
-			pcodelist[(row-x0)*cols + (col -y0)] = nidx2;
-			//pcodelist[idx] = nidx2;
-			//idx++;
-
-			printf("query: %d, %d, %d ---   %d \n", row, col, (row - x0)*cols + (col - y0), nidx2);
+			nidx2 |= (h3.hcode[p] << (ORDER - p - 1)*DIM);
+			//printBits(sizeof(U_int), &(h2.hcode[i]));
 		}
+
+		//szstr[0] = BASE64_TABLE_E2[nidx2];
+
+		pcodelist[i] = nidx2;
+		//pcodelist[(row - x0)*cols + (col - y0)] = nidx2;
+		//pcodelist[idx] = nidx2;
+		//idx++;
+
+		printf("query: %d, %d, %d ---   %d \n", row, col, (row - x0)*cols + (col - y0), nidx2);
 	}
+	/*	}
+	}*/
 
 	for (int i = 0; i < rows*cols; i++)
 	{
@@ -347,7 +520,28 @@ int _tmain(int argc, _TCHAR* argv[])
 
 	//delete[] pcodelist;
 	////////////////////////////////////////////////////////////////
+	////recursive approximation
+	node root;
+	root.level = 0;
+	root.x0 = 0;
+	root.y0 = 0;
+	root.width = 8;
 
+	rect qrt;
+	qrt.x0 = 3; qrt.x1 = 6;
+	qrt.y0 = 2; qrt.y1 = 6;
+
+	///check if the root node contains or eqauls the query rectangle
+	int res = root.spatialrelationship(qrt);
+	if (res == 0) ///equals
+	{
+		printf("node level : %d, (%d, %d)\n", root.level , root.x0 , root.y0);
+	}
+
+	if (res == 1) //fully contain 
+	{
+		query_approximate(root, qrt);
+	}
 
 	//free(szstr);
 	free(szstr);
